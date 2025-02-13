@@ -1,0 +1,2 @@
+version 1.0.0+20250209
+      Ckeditor  5 wit  elfinder as file manager
