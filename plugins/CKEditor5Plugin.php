@@ -20,7 +20,7 @@ class CKEditor5Plugin extends phplistPlugin
     {
         $width = getConfig('ckeditor_width') ?? 900;
         $height = getConfig('ckeditor_height') ?? 450;
-        $licenseKey = getConfig('ckeditor_license_key');
+        $licenseKey = null; // getConfig('ckeditor_license_key');
         $licenseKeyScript = "licenseKey: '$licenseKey'";
         $editorUrl = getConfig('ckeditor_url') ? getConfig('ckeditor_url') : self::CDN;
         $configVersion = $this->getCkeditorVersion($editorUrl) ?? '0.0.0';
@@ -162,5 +162,15 @@ END;
     public function getCkeditorVersion($url) {
         preg_match('/ckeditor5\/([\d\.]+)\//', $url, $matches);
         return $matches[1] ?? null;
+    }
+
+    public function dependencyCheck()
+    {
+        global $editorplugin;
+
+        return array(
+            'No other editor enabled' => empty($editorplugin) || $editorplugin == __CLASS__,
+            'phpList version 3.5.5 or later' => version_compare(VERSION, '3.5.5-RC1') >= 0,
+        );
     }
 }
