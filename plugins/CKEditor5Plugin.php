@@ -60,6 +60,21 @@ END;
         $script = <<<END
 <script src="$editorUrl"></script>
 <script>
+function MinHeightPlugin(editor) {
+  this.editor = editor;
+}
+
+MinHeightPlugin.prototype.init = function() {
+  this.editor.ui.view.editable.extendTemplate({
+    attributes: {
+      style: {
+        minHeight: '{$height}px'
+      }
+    }
+  });
+};
+
+ClassicEditor.builtinPlugins.push(MinHeightPlugin);
 document.addEventListener("DOMContentLoaded", function () {
     ClassicEditor
         .create(document.querySelector('textarea#$fieldName'), {
