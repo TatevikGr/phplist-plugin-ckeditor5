@@ -15,15 +15,16 @@ class CKEditor5Plugin extends phplistPlugin
     public $description = 'Provides the CKEditor5 for editing messages and templates.';
     public $documentationUrl = 'https://resources.phplist.com/plugin/ckeditor5';
     public $enabled = 1;
-    private $elEnabled;
 
     public function __construct()
     {
-        $this->elEnabled = defined('UPLOADIMAGES_DIR') && UPLOADIMAGES_DIR !== false;
-        $this->coderoot = dirname(__FILE__) . self::CODE_DIR;
+        $this->coderoot = dirname(__FILE__) . '/' . __CLASS__ . '/';
         $this->version = (is_file($f = $this->coderoot . self::VERSION_FILE))
             ? file_get_contents($f)
             : '';
+        $elPath = substr(PLUGIN_ROOTDIR, 0, 1) == '/' ? PLUGIN_ROOTDIR : $GLOBALS['pageroot'] . '/admin/' . PLUGIN_ROOTDIR;
+        $elPath .= self::CODE_DIR . 'elFinder';
+
         $this->settings = array(
             'ckeditor5_url' => array(
                 'value' => '//cdn.ckeditor.com/ckeditor5/34.0.0/classic/ckeditor.js',
@@ -32,78 +33,62 @@ class CKEditor5Plugin extends phplistPlugin
                 'allowempty' => 0,
                 'category' => 'CKEditor',
             ),
-            'ckeditor_disallow' => array(
+            'ckeditor5_disallow' => array(
                 'description' => 'Disallow javascript',
                 'type' => 'boolean',
                 'value' => '1',
                 'allowempty' => true,
                 'category' => 'CKEditor',
             ),
+            'ckeditor5_width' => [
+                'value' => 600,
+                'description' => 'Width in px of CKeditor Area',
+                'type' => 'integer',
+                'allowempty' => 0,
+                'min' => 100,
+                'max' => 800,
+                'category' => 'CKEditor',
+            ],
+            'ckeditor5_height' => [
+                'value' => 600,
+                'description' => 'Height in px of CKeditor Area',
+                'type' => 'integer',
+                'allowempty' => 0,
+                'min' => 100,
+                'max' => 800,
+                'category' => 'CKEditor',
+            ],
+            'elfinder_path' => array(
+                'value' => $elPath,
+                'description' => 'path to elFinder',
+                'type' => 'text',
+                'allowempty' => 0,
+                'category' => 'TinyMCE',
+            ),
+            'elfinder_image_directory' => array(
+                'value' => getConfig('kcfinder_image_directory') ?? 'image',
+                'description' => 'Name of the image subdirectory of the file upload directory',
+                'type' => 'text',
+                'allowempty' => 0,
+                'category' => 'CKEditor',
+            ),
+            'elfinder_files_directory' => array(
+                'value' => getConfig('kcfinder_files_directory') ?? 'files',
+                'description' => 'Name of the files subdirectory of the file upload directory',
+                'type' => 'text',
+                'allowempty' => 0,
+                'category' => 'CKEditor',
+            ),
         );
 
-        if (isset($_SESSION['ui']) && $_SESSION['ui'] == 'dressprow') {
-            $this->settings += [
-                'ckeditor_width' => [
-                    'value' => 600,
-                    'description' => 'Width in px of CKeditor Area',
-                    'type' => 'integer',
-                    'allowempty' => 0,
-                    'min' => 100,
-                    'max' => 800,
-                    'category' => 'CKEditor',
-                ],
-                'ckeditor_height' => [
-                    'value' => 600,
-                    'description' => 'Height in px of CKeditor Area',
-                    'type' => 'integer',
-                    'allowempty' => 0,
-                    'min' => 100,
-                    'max' => 800,
-                    'category' => 'CKEditor',
-                ],
-            ];
-        }
-
-        if ($this->elEnabled) {
-            $this->settings += array(
-                'kcfinder_path' => array(
-                    'value' => PLUGIN_ROOTDIR . self::CODE_DIR . 'elfinder',
-                    'description' => 'Path to ElFinder',
-                    'type' => 'text',
-                    'allowempty' => 0,
-                    'category' => 'CKEditor',
-                ),
-                'kcfinder_uploaddir' => array(
-                    'value' => '',
-                    'description' => 'File system path to the upload image directory. Usually leave this empty.',
-                    'type' => 'text',
-                    'allowempty' => 1,
-                    'category' => 'CKEditor',
-                ),
-                'kcfinder_image_directory' => array(
-                    'value' => 'image',
-                    'description' => 'Name of the image subdirectory of the file upload directory',
-                    'type' => 'text',
-                    'allowempty' => 0,
-                    'category' => 'CKEditor',
-                ),
-                'kcfinder_files_directory' => array(
-                    'value' => 'files',
-                    'description' => 'Name of the files subdirectory of the file upload directory',
-                    'type' => 'text',
-                    'allowempty' => 0,
-                    'category' => 'CKEditor',
-                ),
-            );
-        }
         parent::__construct();
     }
 
     public function editor($fieldName, $content): string
     {
-        $width = getConfig('ckeditor_width') ?? 900;
-        $height = getConfig('ckeditor_height') ?? 450;
-        $licenseKey = getConfig('ckeditor_license_key');
+        $width = getConfig('ckeditor5_width') ?? 900;
+        $height = getConfig('ckeditor5_height') ?? 450;
+        $licenseKey = getConfig('ckeditor5_license_key');
         $licenseKeyScript = "licenseKey: '$licenseKey'";
         $editorUrl = getConfig('ckeditor5_url') ? getConfig('ckeditor5_url') : self::CDN;
         $configVersion = $this->getCkeditorVersion($editorUrl) ?? '0.0.0';
@@ -113,7 +98,7 @@ class CKEditor5Plugin extends phplistPlugin
             $editorUrl = self::CDN;
         }
         $htmlSupport = '';
-        if (getConfig('ckeditor_disallow')) {
+        if (getConfig('ckeditor5_disallow')) {
             $htmlSupport = "htmlSupport: {
                 disallow: [
                     { name: 'script' },
@@ -127,8 +112,7 @@ class CKEditor5Plugin extends phplistPlugin
         $fieldName = htmlspecialchars($fieldName);
         $content = htmlspecialchars($content);
 
-        return $this->textArea($fieldName, $content)
-            . $this->scriptForSyncLoad($editorUrl, $script);
+        return $this->textArea($fieldName, $content) . $this->scriptForSyncLoad($editorUrl, $script);
     }
 
     private function scriptForSyncLoad(string $editorUrl, $ckScript): string
@@ -148,7 +132,7 @@ END;
 
     private function editorScript(string $fieldName, $width, $height, $licenseKeyScript, $editorUrl, $htmlSupport): string
     {
-        $pluginUrl = substr(PLUGIN_ROOTDIR, 0, 1) == '/' ? PLUGIN_ROOTDIR : $GLOBALS['pageroot'] . '/admin/' . PLUGIN_ROOTDIR;
+        $pluginUrl = './?pi=CKEditor5Plugin&page=serve_elfinder';
 
         $script = <<<END
 <script src="$editorUrl"></script>
@@ -189,7 +173,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             function openElFinder(editor, fileType) {
                 const fileManager = window.open(
-                    '$pluginUrl/CKEditor5Plugin/elFinder/elfinder.html',
+                    '$pluginUrl',
                     'File Manager',
                     'width=$width,height=$height'
                 );
@@ -212,7 +196,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                 editor.model.insertContent(imageElement, editor.model.document.selection);
                             });
                         } else {
-                            // display data.data.url in editor page
                             editor.model.change(writer => {
                                 const linkText = data.data.name || fileUrl;
                                 const textNode = writer.createText(linkText, { linkHref: fileUrl });
@@ -239,14 +222,14 @@ END;
     public function adminMenu()
     {
         return array(
-            "ckeditor_settings" => "Ckedotor5 Settings",
+            "ckeditor5_settings" => "Ckedotor5 Settings",
         );
     }
 
     public function display($action)
     {
         switch ($action) {
-            case "ckeditor_settings":
+            case "ckeditor5_settings":
                 echo '<h1>Ckedotor5 Configuration</h1>';
                 echo '<p>Configure your Ckedotor5 integration here.</p>';
                 break;
