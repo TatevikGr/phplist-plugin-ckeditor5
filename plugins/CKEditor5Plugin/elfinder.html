@@ -68,6 +68,11 @@
                         }
                     });
 
+                    // This reloads the file list (for double click to insert newly uploaded image in content)
+                    fm.bind('upload', function() {
+                        fm.exec('reload');
+                    });
+
                     // Optional for set document.title dynamically.
                     var title = document.title;
                     fm.bind('open', function() {
