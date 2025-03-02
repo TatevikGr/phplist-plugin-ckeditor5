@@ -24,7 +24,7 @@ $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https"
 $uploadDir = UPLOADIMAGES_DIR;
 $uploadPath = realpath($_SERVER['DOCUMENT_ROOT'] . "/$uploadDir/") . '/';
 $userDirectory = $uploadPath;
-$publicURL = $protocol . '://' . $_SERVER['SERVER_NAME'] . "/$uploadDir/";
+$publicURL = $GLOBALS['admin_scheme'] . '://' . getConfig('website') . "/$uploadDir/";
 
 if (defined('IMAGE_DIR_PER_ADMIN') && IMAGE_DIR_PER_ADMIN) {
     $userId = $_SESSION['logindetails']['id'];

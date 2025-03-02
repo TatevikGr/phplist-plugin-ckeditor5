@@ -33,13 +33,6 @@ class CKEditor5Plugin extends phplistPlugin
                 'allowempty' => 0,
                 'category' => 'CKEditor',
             ),
-            'ckeditor5_disallow' => array(
-                'description' => 'Disallow javascript',
-                'type' => 'boolean',
-                'value' => '1',
-                'allowempty' => true,
-                'category' => 'CKEditor',
-            ),
             'ckeditor5_width' => [
                 'value' => 600,
                 'description' => 'Width in px of CKeditor Area',
@@ -97,16 +90,13 @@ class CKEditor5Plugin extends phplistPlugin
         if (version_compare($configVersion, $cdnVersion, '<')) {
             $editorUrl = self::CDN;
         }
-        $htmlSupport = '';
-        if (getConfig('ckeditor5_disallow')) {
-            $htmlSupport = "htmlSupport: {
-                disallow: [
-                    { name: 'script' },
-                    { name: /.*/, attributes: { key: /^on.*/ } },
-                    { name: 'iframe' }
-                ]
-            }";
-        }
+        $htmlSupport = "htmlSupport: {
+            disallow: [
+                { name: 'script' },
+                { name: /.*/, attributes: { key: /^on.*/ } },
+                { name: 'iframe' }
+            ]
+        }";
 
         $script = $this->editorScript($fieldName, $width, $height, $licenseKeyScript, $editorUrl, $htmlSupport);
         $fieldName = htmlspecialchars($fieldName);
