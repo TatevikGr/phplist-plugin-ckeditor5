@@ -4,7 +4,6 @@ class CKEditor5Plugin extends phplistPlugin
 {
     const VERSION_FILE = 'version.txt';
     const CODE_DIR = '/CKEditor5Plugin/';
-    const CDN =  '//cdn.ckeditor.com/ckeditor5/34.0.0/classic/ckeditor.js';
 
     /*
      *  Inherited variables
@@ -22,13 +21,29 @@ class CKEditor5Plugin extends phplistPlugin
         $this->version = (is_file($f = $this->coderoot . self::VERSION_FILE))
             ? file_get_contents($f)
             : '';
-        $elPath = substr(PLUGIN_ROOTDIR, 0, 1) == '/' ? PLUGIN_ROOTDIR : $GLOBALS['pageroot'] . '/admin/' . PLUGIN_ROOTDIR;
-        $elPath .= self::CODE_DIR . 'elFinder';
+        $pluginPath = substr(PLUGIN_ROOTDIR, 0, 1) == '/' ? PLUGIN_ROOTDIR : $GLOBALS['pageroot'] . '/admin/' . PLUGIN_ROOTDIR;
+        $elPath = $pluginPath . self::CODE_DIR . 'elFinder';
+        $ckeditorJsPath = $pluginPath . self::CODE_DIR . 'ckeditor5/ckeditor5.umd.js';
+        $ckeditorSccPath = $pluginPath . self::CODE_DIR . 'ckeditor5/ckeditor5-editor.css';
 
         $this->settings = array(
-            'ckeditor5_url' => array(
-                'value' => '//cdn.ckeditor.com/ckeditor5/34.0.0/classic/ckeditor.js',
+            'ckeditor5_js_url' => array(
+                'value' => $ckeditorJsPath,
                 'description' => 'URL of ckeditor.js',
+                'type' => 'text',
+                'allowempty' => 0,
+                'category' => 'CKEditor',
+            ),
+            'ckeditor5_css_url' => array(
+                'value' => $ckeditorSccPath,
+                'description' => 'URL of ckeditor.css',
+                'type' => 'text',
+                'allowempty' => 0,
+                'category' => 'CKEditor',
+            ),
+            'ckeditor5_license_key' => array(
+                'value' => ' ',
+                'description' => 'Licence key from ckeditor.js',
                 'type' => 'text',
                 'allowempty' => 0,
                 'category' => 'CKEditor',
@@ -83,13 +98,9 @@ class CKEditor5Plugin extends phplistPlugin
         $height = getConfig('ckeditor5_height') ?? 450;
         $licenseKey = getConfig('ckeditor5_license_key');
         $licenseKeyScript = "licenseKey: '$licenseKey'";
-        $editorUrl = getConfig('ckeditor5_url') ? getConfig('ckeditor5_url') : self::CDN;
-        $configVersion = $this->getCkeditorVersion($editorUrl) ?? '0.0.0';
-        $cdnVersion = $this->getCkeditorVersion(self::CDN) ?? '0.0.0';
+        $editorUrl = getConfig('ckeditor5_js_url');
+        $cssUrl = getConfig('ckeditor5_css_url');
 
-        if (version_compare($configVersion, $cdnVersion, '<')) {
-            $editorUrl = self::CDN;
-        }
         $htmlSupport = "htmlSupport: {
             disallow: [
                 { name: 'script' },
@@ -102,7 +113,7 @@ class CKEditor5Plugin extends phplistPlugin
         $fieldName = htmlspecialchars($fieldName);
         $content = htmlspecialchars($content);
 
-        return $this->textArea($fieldName, $content) . $this->scriptForSyncLoad($editorUrl, $script);
+        return $this->textArea($fieldName, $content, $cssUrl) . $this->scriptForSyncLoad($editorUrl, $script);
     }
 
     private function scriptForSyncLoad(string $editorUrl, $ckScript): string
@@ -115,21 +126,28 @@ $ckScript
 END;
     }
 
-    private function textArea(string $fieldName, string $content): string
+    private function textArea(string $fieldName, string $content, string $cssUrl): string
     {
-        return "<textarea id=\"$fieldName\" name=\"$fieldName\">$content</textarea>";
+        return "
+		<link rel='stylesheet' href=" . $cssUrl . " crossorigin>
+<textarea id=\"$fieldName\" name=\"$fieldName\">$content</textarea>";
     }
 
     private function editorScript(string $fieldName, $width, $height, $licenseKeyScript, $editorUrl, $htmlSupport): string
     {
         $pluginUrl = './?pi=CKEditor5Plugin&page=serve_elfinder';
-
         $script = <<<END
 <script src="$editorUrl"></script>
 <script>
 function MinHeightPlugin(editor) {
   this.editor = editor;
 }
+const { ClassicEditor,Essentials,Alignment,AutoLink,Autosave,BlockQuote,Bold,Code,FontBackgroundColor,FontColor,FontFamily,
+	FontSize,GeneralHtmlSupport,Heading,Highlight,HorizontalLine,HtmlComment,HtmlEmbed,Indent,IndentBlock,Italic,Link,
+	Paragraph,PlainTableOutput,RemoveFormat,Strikethrough,Subscript,Superscript,Table,TableCaption,TableCellProperties,
+	TableColumnResize,TableLayout,TableProperties,TableToolbar,Underline, SourceEditing,MediaEmbed,PictureEditing,
+	AutoImage,ImageBlock,TextTransformation,TodoList,ImageCaption,ImageInsert,ImageInsertViaUrl,ImageResize,ImageStyle,
+	ImageTextAlternative,ImageToolbar,ImageUpload, LinkImage, ImageInsertUI,ImageInline,List,ListProperties} = CKEDITOR;
 
 MinHeightPlugin.prototype.init = function() {
   this.editor.ui.view.editable.extendTemplate({
@@ -141,18 +159,90 @@ MinHeightPlugin.prototype.init = function() {
   });
 };
 
-ClassicEditor.builtinPlugins.push(MinHeightPlugin);
 document.addEventListener("DOMContentLoaded", function () {
-    ClassicEditor
-        .create(document.querySelector('textarea#$fieldName'), {
-            $licenseKeyScript,
-            $htmlSupport,
-            toolbar: [
-                'heading', 'undo', 'redo', '|', 
-                'bold', 'italic',  'bulletedList', 'numberedList', '|',
-                'imageUpload', 'link', 'mediaEmbed',  '|',
-                'blockQuote', 'insertTable'
-            ]
+    ClassicEditor.create(document.querySelector('textarea#$fieldName'), {
+        extraPlugins: [ MinHeightPlugin,Essentials,Alignment,AutoLink,Autosave,BlockQuote,Bold,Code,
+            FontBackgroundColor,FontColor,FontFamily,FontSize,GeneralHtmlSupport,Heading,Highlight,HorizontalLine,
+            HtmlComment,HtmlEmbed,Indent,IndentBlock,Italic,Link,Paragraph,PlainTableOutput,RemoveFormat,Strikethrough,
+            Subscript,Superscript,Table,TableCaption,TableCellProperties,TableColumnResize,TableLayout,TableProperties,
+            TableToolbar,Underline, SourceEditing,ImageInsert,ImageInsertUI, ImageInline,List,ListProperties,MediaEmbed,
+            PictureEditing,TextTransformation,TodoList,
+
+        ],
+        plugins: [
+		    AutoImage,Autosave,BlockQuote,Bold,Essentials,GeneralHtmlSupport,Heading,HtmlEmbed,ImageBlock,ImageCaption,
+		    ImageInline,ImageInsert,ImageInsertViaUrl,ImageStyle,ImageTextAlternative,ImageToolbar,ImageUpload,Indent,
+		    IndentBlock,Italic,Link,LinkImage,List,ListProperties,MediaEmbed,Paragraph,PictureEditing,SourceEditing,
+		    Table,TableCaption,TableCellProperties,TableColumnResize,TableProperties,TableToolbar,TextTransformation,
+		    TodoList,Underline
+	    ],
+        $licenseKeyScript,
+        $htmlSupport,
+        image: {
+            toolbar: ['toggleImageCaption', 'imageTextAlternative', '|', 'imageStyle:inline', 'imageStyle:wrapText', 'imageStyle:breakText']
+        },
+        toolbar: {
+		    items: [
+                'insertImage','sourceEditing','undo','redo','|',
+                'heading','|',
+                'fontSize','fontFamily','fontColor','fontBackgroundColor','|',
+                'bold','italic','underline','strikethrough','subscript','superscript','code','removeFormat','|',
+                'horizontalLine','link','insertTable','insertTableLayout','highlight','blockQuote','htmlEmbed','|',
+                'alignment','|',
+                'outdent','indent'
+            ],
+            fontFamily: { supportAllValues: true },
+            fontSize: {
+                options: [10, 12, 14, 'default', 18, 20, 22],
+                supportAllValues: true
+            },
+            heading: {
+                options: [
+                    {
+                        model: 'paragraph',
+                        title: 'Paragraph',
+                        class: 'ck-heading_paragraph'
+                    },
+                    {
+                        model: 'heading1',
+                        view: 'h1',
+                        title: 'Heading 1',
+                        class: 'ck-heading_heading1'
+                    },
+                    {
+                        model: 'heading2',
+                        view: 'h2',
+                        title: 'Heading 2',
+                        class: 'ck-heading_heading2'
+                    },
+                    {
+                        model: 'heading3',
+                        view: 'h3',
+                        title: 'Heading 3',
+                        class: 'ck-heading_heading3'
+                    },
+                    {
+                        model: 'heading4',
+                        view: 'h4',
+                        title: 'Heading 4',
+                        class: 'ck-heading_heading4'
+                    },
+                    {
+                        model: 'heading5',
+                        view: 'h5',
+                        title: 'Heading 5',
+                        class: 'ck-heading_heading5'
+                    },
+                    {
+                        model: 'heading6',
+                        view: 'h6',
+                        title: 'Heading 6',
+                        class: 'ck-heading_heading6'
+                    }
+                ]
+            },
+            shouldNotGroupWhenFull: false
+        },
         })
         .then(editor => {
             editor.ui.view.toolbar.element.addEventListener("click", (event) => {
