@@ -42,7 +42,7 @@ class CKEditor5Plugin extends phplistPlugin
                 'category' => 'CKEditor',
             ),
             'ckeditor5_license_key' => array(
-                'value' => ' ',
+                'value' => 'GPL',
                 'description' => 'Licence key from ckeditor.js',
                 'type' => 'text',
                 'allowempty' => 0,
