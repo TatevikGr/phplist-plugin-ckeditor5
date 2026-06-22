@@ -24,7 +24,8 @@ class CKEditor5Plugin extends phplistPlugin
         $pluginPath = substr(PLUGIN_ROOTDIR, 0, 1) == '/' ? PLUGIN_ROOTDIR : $GLOBALS['pageroot'] . '/admin/' . PLUGIN_ROOTDIR;
         $elPath = $pluginPath . self::CODE_DIR . 'elFinder';
         $ckeditorJsPath = $pluginPath . self::CODE_DIR . 'ckeditor5/ckeditor5.umd.js';
-        $ckeditorSccPath = $pluginPath . self::CODE_DIR . 'ckeditor5/ckeditor5-editor.css';
+        $ckeditorCssPath = $pluginPath . self::CODE_DIR . 'ckeditor5/ckeditor5-editor.css';
+        $ckeditorContentCssPath = $pluginPath . self::CODE_DIR . 'ckeditor5/ckeditor5-content.css';
 
         $this->settings = array(
             'ckeditor5_js_url' => array(
@@ -35,7 +36,14 @@ class CKEditor5Plugin extends phplistPlugin
                 'category' => 'CKEditor',
             ),
             'ckeditor5_css_url' => array(
-                'value' => $ckeditorSccPath,
+                'value' => $ckeditorCssPath,
+                'description' => 'URL of ckeditor.css',
+                'type' => 'text',
+                'allowempty' => 0,
+                'category' => 'CKEditor',
+            ),
+            'ckeditor5_content_css_url' => array(
+                'value' => $ckeditorContentCssPath,
                 'description' => 'URL of ckeditor.css',
                 'type' => 'text',
                 'allowempty' => 0,
@@ -100,20 +108,29 @@ class CKEditor5Plugin extends phplistPlugin
         $licenseKeyScript = "licenseKey: '$licenseKey'";
         $editorUrl = getConfig('ckeditor5_js_url');
         $cssUrl = getConfig('ckeditor5_css_url');
+        $contentCss = getConfig('ckeditor5_content_css_url');
 
         $htmlSupport = "htmlSupport: {
             disallow: [
                 { name: 'script' },
                 { name: /.*/, attributes: { key: /^on.*/ } },
                 { name: 'iframe' }
-            ]
+            ],
+            allow: [
+                {
+                    name: /.*/,
+                    attributes: true,
+                    classes: true,
+                    styles: true
+                }
+            ],
         }";
 
         $script = $this->editorScript($fieldName, $width, $height, $licenseKeyScript, $editorUrl, $htmlSupport);
         $fieldName = htmlspecialchars($fieldName);
         $content = htmlspecialchars($content);
 
-        return $this->textArea($fieldName, $content, $cssUrl) . $this->scriptForSyncLoad($editorUrl, $script);
+        return $this->textArea($fieldName, $content, $cssUrl, $contentCss) . $this->scriptForSyncLoad($editorUrl, $script);
     }
 
     private function scriptForSyncLoad(string $editorUrl, $ckScript): string
@@ -126,10 +143,11 @@ $ckScript
 END;
     }
 
-    private function textArea(string $fieldName, string $content, string $cssUrl): string
+    private function textArea(string $fieldName, string $content, string $cssUrl, string $contentCss): string
     {
         return "
 		<link rel='stylesheet' href=" . $cssUrl . " crossorigin>
+		<link rel='stylesheet' href=" . $contentCss . " crossorigin>
 <textarea id=\"$fieldName\" name=\"$fieldName\">$content</textarea>";
     }
 
@@ -299,7 +317,7 @@ END;
         return $script;
     }
 
-    public function adminMenu()
+    public function adminMenu(): array
     {
         return array(
             "ckeditor5_settings" => "Ckedotor5 Settings",
@@ -308,11 +326,9 @@ END;
 
     public function display($action)
     {
-        switch ($action) {
-            case "ckeditor5_settings":
-                echo '<h1>Ckedotor5 Configuration</h1>';
-                echo '<p>Configure your Ckedotor5 integration here.</p>';
-                break;
+        if ($action == "ckeditor5_settings") {
+            echo '<h1>Ckedotor5 Configuration</h1>';
+            echo '<p>Configure your Ckedotor5 integration here.</p>';
         }
     }
 
@@ -321,7 +337,7 @@ END;
         return $matches[1] ?? null;
     }
 
-    public function dependencyCheck()
+    public function dependencyCheck(): array
     {
         global $editorplugin;
 
